@@ -1,0 +1,140 @@
+//
+//  bamByChr.cpp
+//  methclone
+//
+//  Created by Sheng Li on 7/17/13.
+//  Copyright (c) 2013 Weill Medical College of Cornell University. All rights reserved.
+//
+
+#include <iostream>
+#include "api/BamReader.h"
+#include "alignToMeth.h"
+#include "combEntropy.h"
+#include <gzstream.h>
+
+int bamCheck(std::string bamFile, BamTools::BamReader & reader)
+{
+    if (!reader.Open(bamFile)){ //bam file
+        std::cerr << "Could not open input BAM file." << std::endl;
+        reader.Close();
+        return false;
+    } else {
+        time_t now = time(0);
+        std::cerr << "*******************************\n" << ctime(&now) << "************Entropy************\n" << "Opening " << bamFile <<std::endl;
+        std::cerr << "===============================" << std::endl;
+        return 0;
+    }
+    
+}
+
+int readerToMeth(BamTools::BamReader & reader1, 
+                 BamTools::BamReader & reader2, 
+                 std::map<std::string, std::vector<std::string> > & lociMeth1, 
+                 std::map<std::string, std::vector<std::string> > & lociMeth2, 
+                 BamTools::RefVector::const_iterator i, 
+                 int d, 
+                 const BamTools::RefVector refs,
+                 std::string sample)
+{
+    const int r1=reader1.GetReferenceID(i->RefName);
+    const int r2=reader2.GetReferenceID(i->RefName);
+    const int rl=i->RefLength;
+    if(reader1.SetRegion(r1,0, r1, rl) & reader2.SetRegion(r2,0, r2, rl))
+    {
+        std::cerr << "Processing " << i->RefName << std::endl;
+        BamTools::BamAlignment al;            
+        while (reader1.GetNextAlignment(al)){
+            //std::cout << al.RefID << std::endl;
+            byread(al, d, lociMeth1, refs, sample);
+        }
+        while (reader2.GetNextAlignment(al)){
+            //std::cout << al.RefID << std::endl;
+            byread(al, d, lociMeth2, refs, sample);
+        }
+    }
+    reader1.Rewind();
+    reader2.Rewind();            
+    return 0;
+}
+int header(ogzstream & myfile, std::map <std::string, int> allpatterns)
+{
+    myfile << "chr\tstart\tend\tsample\tdistance\tstrand\tloci\tentropy\tread1\tread2\tmeth1\tmeth2\tpattern1\tpattern2\t";
+    for (int k=0; k<2; k++) {
+        for (std::map <std::string, int>::const_iterator it=allpatterns.begin(); it!=allpatterns.end(); it++) {
+            myfile << "s" << k << ":" << it->first << "\t";
+        }
+    }
+    myfile << std::endl;
+    return 0;
+}
+int finished()
+{
+    time_t now = time(0);
+    std::cerr << "********************************\n" << ctime(&now) << "************Finished************" << std::endl;
+    return 0;
+}
+
+int bamToLociMeth(std::string bamFile1, 
+                  std::string bamFile2, 
+                  const char * outFile, 
+                  std::string sample, 
+                  int d, int freq, int methdiff)
+{
+    std::map <std::string, int> allpatterns;
+    std::map <std::string, int> patternMeth;
+    getAllPatterns(allpatterns, patternMeth);
+    
+    BamTools::BamReader reader1;
+    BamTools::BamReader reader2;
+    bamCheck(bamFile1, reader1);
+    bamCheck(bamFile2, reader2);
+    
+	// count reads number of bam files for normalization. 
+	/*int n1=0;
+	int n2=0;
+	BamTools::BamAlignment al1;
+	BamTools::BamAlignment al2;
+	while(reader1.GetNextAlignment(al1)){
+        n1=n1+1;
+    }
+	while(reader2.GetNextAlignment(al2)){
+        n2=n2+1;
+    }
+	std::cout << bamFile1 << " read count: " << n1 << ".\n" << bamFile2 << " read count: " << n2 << "." << std::endl;
+	double fnorm1k2=double(n1)/double(n2);
+	*/
+    // get reference name from first bam
+    const BamTools::RefVector refs = reader1.GetReferenceData();
+    reader1.LocateIndex();
+    reader2.LocateIndex();
+
+    if (reader1.HasIndex() & reader2.HasIndex())
+    {
+        std::cerr << "Output file: " << outFile << std::endl;
+        std::cerr << "===============================" << std::endl;
+
+        ogzstream myfile;
+        myfile.open (outFile);
+        header(myfile, allpatterns);
+        
+        for(BamTools::RefVector::const_iterator i = refs.begin(); i != refs.end(); ++i)
+        {
+            std::map<std::string, std::vector<std::string> > lociMeth1;
+            std::map<std::string, std::vector<std::string> > lociMeth2;
+            // iterate by chromosome for bamFile1 and bamFile2
+            readerToMeth(reader1, reader2, lociMeth1, lociMeth2, i, d, refs, sample);
+            //entropy analysis
+            interLoci(lociMeth1, lociMeth2, allpatterns, patternMeth, freq, methdiff, fnorm1k2, myfile);
+        }
+        reader1.Close();
+        reader2.Close();
+        myfile.close();
+        finished();
+        return 0;
+    } else {
+        std::cerr << "Could not load index data for all input BAM file(s)... Aborting." << std::endl;
+        return false;
+    }
+
+}
+

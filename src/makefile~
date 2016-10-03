@@ -1,0 +1,14 @@
+CXX = g++
+CXXOPT = -O3
+CPPFLAGS += -Iutils/gzstream
+CPPFLAGS += -Iutils/BamTools/include
+LDFLAGS += -Lutils/gzstream
+LDFLAGS += -Lutils/BamTools/lib 
+LDFLAGS += -lbamtools -lgzstream -lz
+PROGRAME = methclone
+
+all: $(PROGRAME)
+
+$(PROGRAME): alignToMeth.cpp  bamByChr.cpp  combEntropy.cpp  main.cpp
+	$(CXX) $(CXXOPT) $^ $(CPPFLAGS) $(LDFLAGS) -o $@
+

@@ -1,0 +1,27 @@
+//
+//  combEntropy.h
+//  methclone
+//
+//  Created by Sheng Li on 7/17/13.
+//  Copyright (c) 2013 Weill Medical College of Cornell University. All rights reserved.
+//
+
+#ifndef methclone_combEntropy_h
+#define methclone_combEntropy_h
+
+#include <gzstream.h>
+int getAllPatterns(std::map <std::string, int> & patterns, std::map <std::string, int> & meth);
+int groupPatterns(std::map <std::string, int> p1, std::map <std::string, int> p2, std::map <std::string, int> & p);
+int methPatterns(std::map <std::string, int> & allp, 
+                 std::vector<std::string> p, 
+                 std::map <std::string, int> patternMeth, 
+                 double & meth,
+                 std::string & maxp);
+// iterate lociMeth1 and lociMeth2, and print loci that shared.
+int interLoci(std::map<std::string, std::vector<std::string> > lociMeth1, 
+              std::map<std::string, std::vector<std::string> > lociMeth2, 
+              std::map <std::string, int> allpatterns,
+              std::map <std::string, int> patternMeth,
+              int freq, int methdiff, ogzstream & myfile);
+#endif
+
