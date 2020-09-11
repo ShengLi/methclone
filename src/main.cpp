@@ -25,7 +25,7 @@ int main(int argc, const char * argv[])
         //default distance cutoff: 72 // trying to match seq length
         int d=72;
         //default read coverage: 60 
-        int cov=60;
+        int cov=10;
         
         std::cerr << "Default program paramters for methclone: \nMax loci width: " << d << " bp" << std::endl;
         std::cerr << "Min methylation difference cutoff: " << m << "%" << std::endl;
