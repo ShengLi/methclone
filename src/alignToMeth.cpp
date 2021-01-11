@@ -27,7 +27,7 @@ int byread(BamTools::BamAlignment al,
         al.GetTag("XM:Z:", Meth);
         std::string strand="+";
         if (al.IsReverseStrand()) {
-            std::reverse(Meth.begin(), Meth.end());
+            // std::reverse(Meth.begin(), Meth.end());
             strand="-";
         }
         for (int i = 0; i < al.QueryBases.size(); i++) {
